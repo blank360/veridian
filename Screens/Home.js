@@ -218,10 +218,9 @@ export default function Home() {
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#4F46E5" /></View>;
 
-  // Always render the dashboard, never an error screen
   return (
     <View style={styles.container}>
-      {/* Header */}
+    
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Dashboard</Text>
@@ -243,10 +242,9 @@ export default function Home() {
         nestedScrollEnabled={true}
       >
         
-        {/* === ROW 1: CV & INTERVIEW PERFORMANCE === */}
+  
         <View style={isDesktop ? styles.row : styles.column}>
-          
-          {/* CV CARD */}
+        
           <View style={[styles.card, isDesktop ? { flex: 0.55, marginRight: 20 } : { marginBottom: 20 }]}>
             <View style={styles.cvHeader}>
                <View>
@@ -301,7 +299,7 @@ export default function Home() {
             </View>
           </View>
 
-          {/* INTERVIEW PERFORMANCE */}
+        
           <View style={[styles.card, styles.purpleCard, isDesktop ? { flex: 0.45 } : { marginBottom: 20 }]}>
              <View style={{flexDirection:'row', justifyContent:'space-between', marginBottom: 20}}>
                 <Text style={[styles.cardTitle, {color:'#FFF'}]}>Interview Performance</Text>
@@ -346,7 +344,6 @@ export default function Home() {
               {renderEditableField("Degree", "degree", userData?.degree)}
               {renderEditableField("Graduation Year", "graduationyear", userData?.graduationyear)}
 
-              {/* CGPA */}
               <View style={styles.cgpaContainer}>
                 <View style={styles.labelRow}>
                   <Text style={styles.label}>CGPA / 10</Text>
@@ -633,4 +630,5 @@ const styles = StyleSheet.create({
   modalText: { fontSize: 15, color: '#334155' },
   closeBtn: { marginTop: 16, backgroundColor: '#4F46E5', padding: 12, borderRadius: 8, alignItems: 'center' },
   closeBtnText: { color: '#FFF', fontWeight: '600' }
+
 });
