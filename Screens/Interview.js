@@ -1,9 +1,0 @@
-import { Text ,View} from "react-native";
-
-export default function Interview({}){
-    return(
-        <View style={{flex:1,justifyContent:"center",alignContent:"center"}}>
-            <Text>Welcome to Interview Screen !!</Text>
-        </View>
-    )
-}
