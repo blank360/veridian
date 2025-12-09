@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "454123473244",
+    "project_id": "veridian-bafa4",
+    "storage_bucket": "veridian-bafa4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:454123473244:android:eb46326c096618a3801999",
+        "android_client_info": {
+          "package_name": "com.startup.veridian"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "454123473244-cae6tjs817jp3pscordofaki0bef6n8g.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD32zZCVVjiedW3ipg7JYvdxFDbtDRHD84"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "454123473244-cae6tjs817jp3pscordofaki0bef6n8g.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
