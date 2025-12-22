@@ -73,30 +73,71 @@ const ProfileCompletionForm = ({ navigation }) => {
         });
         return () => unsubscribe();
     }, []);
+    useEffect(() => {
+        return () => {
+            if (Platform.OS === 'web' && profileImage?.uri) {
+                try {
+                    URL.revokeObjectURL(profileImage.uri);
+                } catch (e) {
+                    console.log('Failed to revoke object URL:', e);
+                }
+            }
+        };
+    }, [profileImage]);
 
     const [formData, setFormData] = useState({
         fullName: '', email: '', status: '', phone: '', location: '', linkedin: '', portfolio: ''
     });
     
     const [cvData, setCvData] = useState({
-        education: '', degree: '', institution: '', graduationYear: '',
-        workExperience: '', currentRole: '', yearsOfExperience: '',
-        skills: '', certifications: '', projects: '', languages: '', achievements: ''
+        education: '', 
+        degree: '', 
+        institution: '', 
+        graduationYear: '',
+        cgpa: '',
+        workExperience: '', 
+        currentRole: '', 
+        yearsOfExperience: '',
+        skills: '', 
+        certifications: '', 
+        projects: '', 
+        languages: '', 
+        achievements: ''
     });
 
     const pickImage = async () => {
         try {
             if (Platform.OS === 'web') {
+                if (profileImage?.uri) {
+                    try {
+                        URL.revokeObjectURL(profileImage.uri);
+                    } catch (e) {
+                        console.log('Failed to revoke previous URL:', e);
+                    }
+                }
+
                 const input = document.createElement('input');
                 input.type = 'file';
-                input.accept = 'image/*';
+                input.accept = 'image/jpeg,image/jpg,image/png,image/gif,image/webp';
                 input.onchange = (e) => {
                     const file = e.target.files[0];
                     if (file) {
+                        if (file.size > 5 * 1024 * 1024) {
+                            Alert.alert('Error', 'Image size must be less than 5MB');
+                            return;
+                        }
+
+                        if (!file.type.startsWith('image/')) {
+                            Alert.alert('Error', 'Please select a valid image file');
+                            return;
+                        }
+
+                        const objectUrl = URL.createObjectURL(file);
                         setProfileImage({
                             name: file.name,
                             file: file,
-                            uri: URL.createObjectURL(file) 
+                            uri: objectUrl,
+                            type: file.type
                         });
                     }
                 };
@@ -106,19 +147,38 @@ const ProfileCompletionForm = ({ navigation }) => {
                     type: 'image/*',
                     copyToCacheDirectory: true,
                 });
-                if (result.canceled === false && result.assets && result.assets.length > 0) {
+                
+                if (!result.canceled && result.assets && result.assets.length > 0) {
                     const file = result.assets[0];
+                    if (file.size && file.size > 5 * 1024 * 1024) {
+                        Alert.alert('Error', 'Image size must be less than 5MB');
+                        return;
+                    }
+
                     setProfileImage({
                         name: file.name,
                         uri: file.uri,
-                        mimeType: file.mimeType
+                        mimeType: file.mimeType || 'image/jpeg'
                     });
                 }
             }
         } catch (err) {
-            Alert.alert('Error', 'Failed to pick image');
+            console.error('Image picker error:', err);
+            Alert.alert('Error', 'Failed to pick image. Please try again.');
         }
     };
+
+    const removeProfileImage = () => {
+        if (Platform.OS === 'web' && profileImage?.uri) {
+            try {
+                URL.revokeObjectURL(profileImage.uri);
+            } catch (e) {
+                console.log('Failed to revoke URL:', e);
+            }
+        }
+        setProfileImage(null);
+    };
+
     const pickDocument = async () => {
         try {
             if (Platform.OS === 'web') {
@@ -153,7 +213,6 @@ const ProfileCompletionForm = ({ navigation }) => {
     const toggleNoCVMode = () => { if(!noCVMode) setSelectedFile(null); setNoCVMode(!noCVMode); };
     const formatFileSize = (bytes) => { if(bytes===0)return'0 B';const k=1024;const s=['B','KB','MB'];const i=Math.floor(Math.log(bytes)/Math.log(k));return Math.round(bytes/Math.pow(k,i)*100)/100+' '+s[i]; };
 
-    // --- SUBMIT ---
     const handleSubmit = async () => {
         if (!user) return Alert.alert('Error', 'No user logged in.');
         if (!formData.fullName || !formData.email || !formData.phone) return Alert.alert('Error', 'Please fill basic fields.');
@@ -170,28 +229,46 @@ const ProfileCompletionForm = ({ navigation }) => {
                 try {
                     const cvRef = storageRef(storage, `cvs/${user.uid}_${Date.now()}_${selectedFile.name}`);
                     let cvBlob;
-                    if (Platform.OS === 'web') cvBlob = selectedFile.file;
-                    else {
+                    if (Platform.OS === 'web') {
+                        cvBlob = selectedFile.file;
+                    } else {
                         const r = await fetch(selectedFile.uri);
                         cvBlob = await r.blob();
                     }
                     await uploadBytes(cvRef, cvBlob);
                     cvUrl = await getDownloadURL(cvRef);
-                } catch (e) { console.error("CV Upload error", e); }
+                } catch (e) { 
+                    console.error("CV Upload error", e);
+                    throw new Error('Failed to upload CV');
+                }
             }
+            
             if (profileImage) {
                 try {
-                    const photoRef = storageRef(storage, `profile_photos/${user.uid}_${Date.now()}`);
+                    const timestamp = Date.now();
+                    const fileName = `${user.uid}_${timestamp}.jpg`;
+                    const photoRef = storageRef(storage, `profile_photos/${fileName}`);
+                    
                     let photoBlob;
-                    if (Platform.OS === 'web') photoBlob = profileImage.file;
-                    else {
-                        const r = await fetch(profileImage.uri);
-                        photoBlob = await r.blob();
+                    if (Platform.OS === 'web') {
+                        photoBlob = profileImage.file;
+                    } else {
+                        const response = await fetch(profileImage.uri);
+                        photoBlob = await response.blob();
                     }
-                    await uploadBytes(photoRef, photoBlob);
+                    
+                    const metadata = {
+                        contentType: profileImage.type || profileImage.mimeType || 'image/jpeg',
+                    };
+                    
+                    await uploadBytes(photoRef, photoBlob, metadata);
                     photoUrl = await getDownloadURL(photoRef);
-                } catch (e) { console.error("Photo Upload error", e); }
+                } catch (e) { 
+                    console.error("Photo Upload error", e);
+                    Alert.alert('Warning', 'Profile photo upload failed, but profile will be saved without it.');
+                }
             }
+            
             const initialUniversalScores = {};
             UNIVERSAL_PARAMS.forEach(p => initialUniversalScores[p] = 0);
             const initialDomainScores = {};
@@ -199,6 +276,7 @@ const ProfileCompletionForm = ({ navigation }) => {
                 initialDomainScores[d] = {};
                 DOMAIN_CONFIG[d].forEach(s => initialDomainScores[d][s] = 0);
             });
+            
             const profileData = {
                 userID: user.uid,
                 email: user.email,
@@ -218,6 +296,7 @@ const ProfileCompletionForm = ({ navigation }) => {
                 degree: cvData.degree,
                 institution: cvData.institution,
                 graduationYear: cvData.graduationYear,
+                cgpa: cvData.cgpa,
                 workExperience: cvData.workExperience,
                 currentRole: cvData.currentRole,
                 yearsOfExperience: cvData.yearsOfExperience,
@@ -237,6 +316,13 @@ const ProfileCompletionForm = ({ navigation }) => {
 
             const profileRef = doc(FIREBASE_DB, 'Profile', user.uid);
             await setDoc(profileRef, profileData, { merge: true });
+            if (Platform.OS === 'web' && profileImage?.uri) {
+                try {
+                    URL.revokeObjectURL(profileImage.uri);
+                } catch (e) {
+                    console.log('Cleanup error:', e);
+                }
+            }
 
             setUploading(false);
             if (Platform.OS === 'web') {
@@ -248,7 +334,7 @@ const ProfileCompletionForm = ({ navigation }) => {
 
         } catch (error) {
             setUploading(false);
-            Alert.alert('Error', error.message);
+            Alert.alert('Error', error.message || 'Failed to save profile');
         }
     };
 
@@ -257,7 +343,19 @@ const ProfileCompletionForm = ({ navigation }) => {
             <View style={styles.photoContainer}>
                 <TouchableOpacity onPress={pickImage} style={styles.photoWrapper}>
                     {profileImage ? (
-                        <Image source={{ uri: profileImage.uri }} style={styles.profileImage} />
+                        <>
+                            <Image 
+                                source={{ uri: profileImage.uri }} 
+                                style={styles.profileImage}
+                                resizeMode="cover"
+                            />
+                            <TouchableOpacity 
+                                onPress={removeProfileImage} 
+                                style={styles.removePhotoBadge}
+                            >
+                                <Feather name="x" size={12} color="#FFF" />
+                            </TouchableOpacity>
+                        </>
                     ) : (
                         <View style={styles.iconCircle}>
                             <Feather name="camera" size={30} color="#7B68EE" />
@@ -267,7 +365,12 @@ const ProfileCompletionForm = ({ navigation }) => {
                         <Feather name="edit-2" size={12} color="#FFF" />
                     </View>
                 </TouchableOpacity>
-                <Text style={styles.photoText}>Upload Photo</Text>
+                <Text style={styles.photoText}>
+                    {profileImage ? 'Change Photo' : 'Upload Photo'}
+                </Text>
+                {profileImage && (
+                    <Text style={styles.photoHint}>{profileImage.name}</Text>
+                )}
             </View>
 
             <Text style={styles.headerTitle}>Complete Your Profile</Text>
@@ -293,6 +396,8 @@ const ProfileCompletionForm = ({ navigation }) => {
                     placeholder="your.email@example.com"
                     value={formData.email}
                     onChangeText={(text) => setFormData({...formData, email: text})}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                 />
 
                 <Text style={styles.label}>Status</Text>
@@ -329,6 +434,7 @@ const ProfileCompletionForm = ({ navigation }) => {
                             placeholder="linkedin.com/in/..."
                             value={formData.linkedin}
                             onChangeText={(text) => setFormData({...formData, linkedin: text})}
+                            autoCapitalize="none"
                         />
                     </View>
                 </View>
@@ -339,6 +445,7 @@ const ProfileCompletionForm = ({ navigation }) => {
                     placeholder="yourportfolio.com"
                     value={formData.portfolio}
                     onChangeText={(text) => setFormData({...formData, portfolio: text})}
+                    autoCapitalize="none"
                 />
 
                 <Text style={[styles.sectionTitle, { marginTop: 25 }]}>Upload Your CV *</Text>
@@ -377,27 +484,73 @@ const ProfileCompletionForm = ({ navigation }) => {
                         <Text style={styles.cvManualHeader}>Professional Information</Text>
                         
                         <Text style={styles.label}>Highest Education Level *</Text>
-                        <TextInput style={styles.fullWidthInput} placeholder="e.g. Bachelors" value={cvData.education} onChangeText={(t)=>setCvData({...cvData, education:t})} />
+                        <TextInput 
+                            style={styles.fullWidthInput} 
+                            placeholder="e.g. Bachelors, Masters, PhD" 
+                            value={cvData.education} 
+                            onChangeText={(t)=>setCvData({...cvData, education:t})} 
+                        />
                         
                         <View style={styles.row}>
                             <View style={styles.rowItem}>
                                 <Text style={styles.label}>Degree</Text>
-                                <TextInput style={styles.fullWidthInput} placeholder="CS" value={cvData.degree} onChangeText={(t)=>setCvData({...cvData, degree:t})} />
+                                <TextInput 
+                                    style={styles.fullWidthInput} 
+                                    placeholder="e.g. B.Tech CS" 
+                                    value={cvData.degree} 
+                                    onChangeText={(t)=>setCvData({...cvData, degree:t})} 
+                                />
                             </View>
                             <View style={[styles.rowItem, {marginLeft:15}]}>
                                 <Text style={styles.label}>Grad Year</Text>
-                                <TextInput style={styles.fullWidthInput} placeholder="2024" value={cvData.graduationYear} onChangeText={(t)=>setCvData({...cvData, graduationYear:t})} />
+                                <TextInput 
+                                    style={styles.fullWidthInput} 
+                                    placeholder="2024" 
+                                    value={cvData.graduationYear} 
+                                    onChangeText={(t)=>setCvData({...cvData, graduationYear:t})} 
+                                    keyboardType="numeric" 
+                                />
                             </View>
                         </View>
                         
                         <Text style={styles.label}>Institute</Text>
-                        <TextInput style={styles.fullWidthInput} placeholder="University Name" value={cvData.institution} onChangeText={(t)=>setCvData({...cvData, institution:t})} />
+                        <TextInput 
+                            style={styles.fullWidthInput} 
+                            placeholder="University/College Name" 
+                            value={cvData.institution} 
+                            onChangeText={(t)=>setCvData({...cvData, institution:t})} 
+                        />
+                        
+                        <View style={styles.row}>
+                            <View style={[styles.rowItem, { flex: 1.5 }]}>
+                                <Text style={styles.label}>CGPA/Percentage</Text>
+                                <TextInput 
+                                    style={styles.fullWidthInput} 
+                                    placeholder="e.g. 8.5 or 85%" 
+                                    value={cvData.cgpa} 
+                                    onChangeText={(t)=>setCvData({...cvData, cgpa:t})} 
+                                    keyboardType="decimal-pad"
+                                />
+                            </View>
+                        </View>
                         
                         <Text style={styles.label}>Current Role</Text>
-                        <TextInput style={styles.fullWidthInput} placeholder="Software Engineer" value={cvData.currentRole} onChangeText={(t)=>setCvData({...cvData, currentRole:t})} />
+                        <TextInput 
+                            style={styles.fullWidthInput} 
+                            placeholder="e.g. Software Engineer, Student" 
+                            value={cvData.currentRole} 
+                            onChangeText={(t)=>setCvData({...cvData, currentRole:t})} 
+                        />
                         
-                        <Text style={styles.label}>Skills</Text>
-                        <TextInput style={styles.fullWidthInput} placeholder="React, Node..." value={cvData.skills} onChangeText={(t)=>setCvData({...cvData, skills:t})} />
+                        <Text style={styles.label}>Skills *</Text>
+                        <TextInput 
+                            style={[styles.fullWidthInput, styles.textArea]} 
+                            placeholder="e.g. React Native, Python, JavaScript, Firebase..."
+                            value={cvData.skills} 
+                            onChangeText={(t)=>setCvData({...cvData, skills:t})}
+                            multiline
+                            numberOfLines={3}
+                        />
                     </View>
                 )}
 
@@ -453,10 +606,12 @@ const styles = StyleSheet.create({
 
     photoContainer: { alignItems: 'center', marginBottom: 20 },
     photoWrapper: { position: 'relative' },
-    profileImage: { width: 100, height: 100, borderRadius: 50 },
+    profileImage: { width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: '#E6E6FA' },
     iconCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#E6E6FA', justifyContent: 'center', alignItems: 'center' },
     editBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#4F46E5', width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFF' },
-    photoText: { marginTop: 8, color: '#4F46E5', fontWeight: '600' },
+    removePhotoBadge: { position: 'absolute', top: 0, right: 0, backgroundColor: '#FF4444', width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFF' },
+    photoText: { marginTop: 8, color: '#4F46E5', fontWeight: '600', fontSize: 14 },
+    photoHint: { marginTop: 4, color: '#999', fontSize: 11, maxWidth: 200, textAlign: 'center' },
 
     headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#333', textAlign: 'center' },
     headerSubtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 30 },
@@ -464,7 +619,7 @@ const styles = StyleSheet.create({
     subsectionTitle: { fontSize: 16, fontWeight: '600', color: '#7B68EE', marginBottom: 10, marginTop: 10 },
     label: { fontSize: 13, color: '#333', marginBottom: 5, marginTop: 15 },
     fullWidthInput: { borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 8, paddingHorizontal: 15, height: 45, backgroundColor: '#FAFAFA', fontSize: 16, color: '#333' },
-    textArea: { height: 'auto', minHeight: 80, paddingTop: 12, paddingBottom: 12 },
+    textArea: { height: 'auto', minHeight: 80, paddingTop: 12, paddingBottom: 12, textAlignVertical: 'top' },
     inputIconGroup: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 8, paddingHorizontal: 10, height: 45, backgroundColor: '#FAFAFA' },
     inputIcon: { marginRight: 10 },
     inputWithIcon: { flex: 1, fontSize: 16, paddingVertical: 0, color: '#333' },
