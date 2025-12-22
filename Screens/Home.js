@@ -1,15 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, Image, ActivityIndicator,
-  TouchableOpacity, useWindowDimensions, Platform, ScrollView
+  TouchableOpacity, useWindowDimensions, Platform, Switch, ScrollView, TextInput
 } from 'react-native';
 import { FIREBASE_Auth, FIREBASE_DB } from '../firebaseconfig'; 
 import { doc, onSnapshot } from 'firebase/firestore'; 
 import { onAuthStateChanged } from 'firebase/auth';
-import Feather from 'react-native-vector-icons/Feather';
+import { Feather } from '@expo/vector-icons';
 import Dashboard from './Dashboard';
 import Plans from './Plans'; 
 import CVMaker from './CVMaker'; 
+import AptitudeDSA from './AptitudeDSA';
+const TermsPanel = ({ theme }) => (
+  <ScrollView contentContainerStyle={{ padding: 24, flex:1, backgroundColor: theme.bg }}>
+    <Text style={[styles.panelTitle, { color: theme.textMain }]}>Terms & Conditions</Text>
+    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+      <Text style={{ color: theme.textSub, lineHeight: 24 }}>
+        <Text style={{fontWeight: 'bold'}}>1. Acceptance: </Text>By using Veridian, you agree to our terms.{'\n\n'}
+        <Text style={{fontWeight: 'bold'}}>2. Privacy: </Text>Your data is stored securely via Firebase.{'\n\n'}
+        <Text style={{fontWeight: 'bold'}}>3. Usage: </Text>Veridian is for interview preparation purposes only.
+      </Text>
+    </View>
+  </ScrollView>
+);
+
+const FeedbackPanel = ({ theme }) => (
+  <ScrollView contentContainerStyle={{ padding: 24, flex:1, backgroundColor: theme.bg }}>
+    <Text style={[styles.panelTitle, { color: theme.textMain }]}>Send Feedback</Text>
+    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+      <Text style={{ color: theme.textSub, marginBottom: 12 }}>
+        We would love to hear your thoughts on how to improve Veridian.
+      </Text>
+      <TextInput 
+        placeholder="Type your feedback here..." 
+        placeholderTextColor={theme.textSub}
+        multiline
+        style={[styles.input, { color: theme.textMain, borderColor: theme.border, backgroundColor: theme.bg }]} 
+      />
+      <TouchableOpacity style={[styles.button, { backgroundColor: theme.primary }]}>
+        <Text style={{ color: '#FFF', fontWeight: '600' }}>Submit Feedback</Text>
+      </TouchableOpacity>
+    </View>
+  </ScrollView>
+);
 
 export default function Home({ navigation }) {
   const { width } = useWindowDimensions();
@@ -18,66 +51,78 @@ export default function Home({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({}); 
   const [activeTab, setActiveTab] = useState('Dashboard');
+  const [darkMode, setDarkMode] = useState(false); 
+  const theme = {
+    bg: darkMode ? '#0F172A' : '#F8FAFC',
+    sidebarBg: darkMode ? '#1E293B' : '#FFFFFF',
+    cardBg: darkMode ? '#1E293B' : '#FFFFFF',
+    textMain: darkMode ? '#F1F5F9' : '#0F172A',
+    textSub: darkMode ? '#94A3B8' : '#64748B',
+    border: darkMode ? '#334155' : '#E2E8F0',
+    activeItemBg: darkMode ? '#312E81' : '#EEF2FF',
+    primary: '#4F46E5',
+    iconActive: '#4F46E5',
+    iconInactive: darkMode ? '#94A3B8' : '#64748B'
+  };
 
   useEffect(() => {
     if (!FIREBASE_Auth || !FIREBASE_DB) {
-      setLoading(false);
+      setLoading(false); 
       return;
     }
-
+    
+    let unsubscribeSnapshot = null;
+    
     const unsubscribeAuth = onAuthStateChanged(FIREBASE_Auth, (user) => {
       if (user) {
         const userDocRef = doc(FIREBASE_DB, "Profile", user.uid);
-        
-        const unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-              setUserData(docSnap.data());
-            } else {
-              console.log("No profile found, initializing empty.");
-              setUserData({}); 
-            }
+        unsubscribeSnapshot = onSnapshot(
+          userDocRef, 
+          (docSnap) => {
+            if (docSnap.exists()) setUserData(docSnap.data());
+            else setUserData({}); 
             setLoading(false);
-          }, (err) => {
-            console.error("Firestore Error:", err);
-            setLoading(false);
-          });
-        return () => unsubscribeSnapshot();
+          }, 
+          (err) => { 
+            console.error(err); 
+            setLoading(false); 
+          }
+        );
       } else {
-        setUserData({});
+        setUserData({}); 
         setLoading(false);
       }
     });
-    return () => unsubscribeAuth();
+    
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+    };
   }, []);
 
   const handleMenuPress = (itemId) => {
-    if (itemId === 'StartInterview') {
-      navigation.navigate('Interview'); 
-    } else {
-      setActiveTab(itemId);
-    }
+    if (itemId === 'StartInterview') navigation.navigate('Interview'); 
+    else setActiveTab(itemId);
   };
 
   const renderContent = () => {
+    const commonProps = { userData, isDesktop, darkMode, theme, navigation };
+    
     switch (activeTab) {
-      case 'Dashboard': 
-        return <Dashboard userData={userData} isDesktop={isDesktop} />;
-      
-      case 'CVMaker': 
-        return <CVMaker userData={userData} />; 
-      
-      case 'Plans': 
-        return <Plans userData={userData} />;
-      
-      default: 
-        return <Dashboard userData={userData} isDesktop={isDesktop} />;
+      case 'Dashboard': return <Dashboard {...commonProps} />;
+      case 'CVMaker': return <CVMaker {...commonProps} />; 
+      case 'AptitudeDSA': return <AptitudeDSA {...commonProps} />;
+      case 'Plans': return <Plans {...commonProps} />;
+      case 'Terms': return <TermsPanel {...commonProps} />;
+      case 'Feedback': return <FeedbackPanel {...commonProps} />;
+      default: return <Dashboard {...commonProps} />;
     }
   };
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+      <View style={[styles.center, { backgroundColor: theme.bg }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
@@ -86,14 +131,23 @@ export default function Home({ navigation }) {
     { id: 'Dashboard', icon: 'grid', label: 'Dashboard' },
     { id: 'StartInterview', icon: 'play-circle', label: 'Start Interview' }, 
     { id: 'CVMaker', icon: 'file-text', label: 'CV Maker' },
+    { id: 'AptitudeDSA', icon: 'cpu', label: 'Aptitude & DSA' },
     { id: 'Plans', icon: 'package', label: 'Plans' },
+    { id: 'Terms', icon: 'shield', label: 'T&C' },
+    { id: 'Feedback', icon: 'message-square', label: 'Feedback' },
   ];
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.sidebar, !isDesktop && styles.sidebarMobile]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <View style={[
+        styles.sidebar, 
+        !isDesktop && styles.sidebarMobile,
+        { backgroundColor: theme.sidebarBg, borderColor: theme.border }
+      ]}>
         <View style={styles.logoContainer}>
-           <Text style={styles.logoText}>{isDesktop ? 'Veridian' : 'V'}</Text>
+           <Text style={[styles.logoText, { color: theme.primary }]}>
+             {isDesktop ? 'Veridian' : 'V'}
+           </Text>
         </View>
         <View style={styles.menuContainer}>
           {menuItems.map((item) => (
@@ -101,21 +155,20 @@ export default function Home({ navigation }) {
               key={item.id} 
               style={[
                 styles.menuItem, 
-                activeTab === item.id && styles.menuItemActive,
-                item.id === 'StartInterview' && styles.menuItemHighlight 
+                activeTab === item.id && { backgroundColor: theme.activeItemBg },
               ]}
               onPress={() => handleMenuPress(item.id)}
             >
               <Feather 
                 name={item.icon} 
                 size={20} 
-                color={activeTab === item.id || item.id === 'StartInterview' ? '#4F46E5' : '#64748B'} 
+                color={activeTab === item.id ? theme.iconActive : theme.iconInactive} 
               />
               {isDesktop && (
                 <Text style={[
                   styles.menuText, 
-                  activeTab === item.id && styles.menuTextActive,
-                  item.id === 'StartInterview' && styles.menuTextHighlight
+                  { color: theme.textSub },
+                  activeTab === item.id && { color: theme.primary, fontWeight: '700' }
                 ]}>
                   {item.label}
                 </Text>
@@ -123,28 +176,56 @@ export default function Home({ navigation }) {
             </TouchableOpacity>
           ))}
         </View>
-        <View style={styles.userSection}>
+        <View style={[styles.toggleSection, { borderColor: theme.border }]}>
+            {isDesktop ? (
+                <View style={styles.toggleRow}>
+                    <View style={{flexDirection:'row', alignItems:'center'}}>
+                        <Feather name={darkMode ? "moon" : "sun"} size={18} color={theme.textSub} />
+                        <Text style={[styles.toggleLabel, { color: theme.textSub }]}>
+                            {darkMode ? 'Dark' : 'Light'}
+                        </Text>
+                    </View>
+                    <Switch 
+                        value={darkMode} 
+                        onValueChange={setDarkMode}
+                        trackColor={{ false: '#CBD5E1', true: '#4F46E5' }}
+                        thumbColor={'#FFF'}
+                    />
+                </View>
+            ) : (
+                <Switch 
+                    value={darkMode} 
+                    onValueChange={setDarkMode}
+                    trackColor={{ false: '#CBD5E1', true: '#4F46E5' }}
+                    thumbColor={'#FFF'}
+                />
+            )}
+        </View>
+
+        <View style={[styles.userSection, { borderColor: theme.border }]}>
            <Image 
              source={{ uri: userData?.photoUrl || 'https://via.placeholder.com/40' }} 
              style={styles.userAvatar} 
            />
            {isDesktop && (
              <View style={{marginLeft: 10}}>
-               <Text style={styles.userName} numberOfLines={1}>
+               <Text style={[styles.userName, { color: theme.textMain }]} numberOfLines={1}>
                  {userData?.fullName || 'Guest'}
                </Text>
-               <Text style={styles.userRole}>
+               <Text style={[styles.userRole, { color: theme.textSub }]}>
                  {userData?.status || 'Free Plan'}
                </Text>
              </View>
            )}
         </View>
       </View>
-
-      <View style={styles.mainContent}>
+      <View style={[styles.mainContent, { backgroundColor: theme.bg }]}>
         {!isDesktop && (
-          <View style={styles.mobileHeader}>
-             <Text style={styles.headerTitle}>{activeTab}</Text>
+          <View style={[styles.mobileHeader, { backgroundColor: theme.sidebarBg, borderColor: theme.border }]}>
+             <Text style={[styles.headerTitle, { color: theme.textMain }]}>{activeTab}</Text>
+             <TouchableOpacity onPress={() => setDarkMode(!darkMode)} style={{ padding: 8 }}>
+                <Feather name={darkMode ? "sun" : "moon"} size={22} color={theme.textMain} />
+             </TouchableOpacity>
           </View>
         )}
         
@@ -161,20 +242,16 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     flexDirection: 'row', 
-    backgroundColor: '#F8FAFC',
     height: Platform.OS === 'web' ? '100vh' : '100%' 
   },
   center: { 
     flex: 1, 
     justifyContent: 'center', 
     alignItems: 'center',
-    backgroundColor: '#F8FAFC'
   },
   sidebar: {
     width: 250,
-    backgroundColor: '#FFF',
     borderRightWidth: 1,
-    borderColor: '#E2E8F0',
     paddingVertical: 24,
     paddingHorizontal: 16,
     display: 'flex',
@@ -193,7 +270,6 @@ const styles = StyleSheet.create({
   logoText: { 
     fontSize: 24, 
     fontWeight: '800', 
-    color: '#4F46E5' 
   },
   menuContainer: { flex: 1 },
   menuItem: {
@@ -204,30 +280,31 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 8,
   },
-  menuItemActive: { 
-    backgroundColor: '#EEF2FF' 
-  },
-  menuItemHighlight: {
-  },
   menuText: { 
     marginLeft: 12, 
     fontSize: 14, 
-    color: '#64748B', 
     fontWeight: '500' 
   },
-  menuTextActive: { 
-    color: '#4F46E5', 
-    fontWeight: '700' 
+  toggleSection: {
+    marginBottom: 16,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
   },
-  menuTextHighlight: {
-    color: '#4F46E5',
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4
+  },
+  toggleLabel: {
+    fontSize: 13,
+    marginLeft: 8,
     fontWeight: '600'
   },
   userSection: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    borderTopWidth: 1, 
-    borderColor: '#F1F5F9', 
     paddingTop: 16 
   },
   userAvatar: { 
@@ -239,32 +316,50 @@ const styles = StyleSheet.create({
   userName: { 
     fontSize: 14, 
     fontWeight: '700', 
-    color: '#0F172A', 
     width: 140 
   },
   userRole: { 
     fontSize: 12, 
-    color: '#64748B' 
   },
-
   mainContent: { 
     flex: 1, 
     display: 'flex', 
     flexDirection: 'column',
-    backgroundColor: '#F8FAFC' 
   },
   mobileHeader: {
     height: 60,
-    backgroundColor: '#FFF',
     borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between', 
     paddingHorizontal: 20,
     elevation: 2,
   },
   headerTitle: { 
     fontSize: 18, 
     fontWeight: '700', 
-    color: '#1E293B' 
+  },
+  panelTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  card: {
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  input: {
+    height: 100,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
+  button: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
   },
 });
