@@ -48,6 +48,7 @@ export default function Dashboard({ theme }) {
   const [editForm, setEditForm] = useState({}); 
   const [uploadingImg, setUploadingImg] = useState(false);
   const [saving, setSaving] = useState(false);
+  const TUF_Green = '#22c55e'; 
 
   useEffect(() => {
     if (!FIREBASE_Auth || !FIREBASE_DB) {
@@ -187,11 +188,12 @@ export default function Dashboard({ theme }) {
     }
   };
 
-  const renderProgressBar = (label, score, color = "#4F46E5") => (
+  const renderProgressBar = (label, score, color = TUF_Green) => (
     <View key={label} style={styles.skillRow}>
       <Text style={[styles.skillLabel, { color: theme.textSub }]}>{label}</Text>
       <View style={styles.skillBarContainer}>
-        <View style={[styles.progressBarBackground, { backgroundColor: theme.bg }]}>
+        {/* Darker background for progress track */}
+        <View style={[styles.progressBarBackground, { backgroundColor: '#27272a' }]}>
           <View style={[styles.progressBarFill, { width: `${(score / 10) * 100}%`, backgroundColor: color }]} />
         </View>
       </View>
@@ -235,7 +237,7 @@ export default function Dashboard({ theme }) {
     </View>
   );
 
-  if (loading) return <View style={[styles.center, { backgroundColor: theme.bg }]}><ActivityIndicator size="large" color="#4F46E5" /></View>;
+  if (loading) return <View style={[styles.center, { backgroundColor: theme.bg }]}><ActivityIndicator size="large" color={TUF_Green} /></View>;
 
   const renderContent = () => (
     <>
@@ -250,14 +252,14 @@ export default function Dashboard({ theme }) {
                <Text style={[styles.cvTitle, { color: theme.textMain }]}>Trusted CV</Text>
                <Text style={[styles.cvSubtitle, { color: theme.textSub }]}>Verified Candidate Profile</Text>
              </View>
-             <View style={styles.verifiedBadge}><Text style={styles.verifiedText}>✓ Verified</Text></View>
+             <View style={styles.verifiedBadge}><Text style={styles.verifiedText}>Under Review</Text></View>
           </View>
           <View style={styles.cvBody}>
              <View style={styles.cvProfileRow}>
                <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper}>
                    {uploadingImg ? (
                        <View style={[styles.cvBigAvatar, styles.center, { backgroundColor: theme.bg }]}>
-                           <ActivityIndicator size="small" color="#4F46E5" />
+                           <ActivityIndicator size="small" color={TUF_Green} />
                        </View>
                    ) : userData?.photoUrl ? (
                        <Image 
@@ -270,7 +272,7 @@ export default function Dashboard({ theme }) {
                            <Text style={[styles.addPhotoText, { color: theme.textSub }]}>Add</Text>
                        </View>
                    )}
-                   <View style={[styles.avatarEditBadge, { backgroundColor: theme.primary }]}>
+                   <View style={[styles.avatarEditBadge, { backgroundColor: theme.primary, borderColor: theme.cardBg }]}>
                        <Feather name="edit-2" size={10} color="#FFF" />
                    </View>
                </TouchableOpacity>
@@ -293,45 +295,47 @@ export default function Dashboard({ theme }) {
 
              {userData?.cvUrl && (
                <TouchableOpacity 
-                 style={[styles.downloadBtn, { backgroundColor: theme.textMain }]}
+                 style={[styles.downloadBtn, { backgroundColor: theme.activeItemBg }]}
                  onPress={() => {
                    if (Platform.OS === 'web') {
                      window.open(userData.cvUrl, '_blank');
                    }
                  }}
                >
-                  <Text style={[styles.downloadBtnText, { color: theme.cardBg }]}>Download Full Resume</Text>
+                  <Text style={[styles.downloadBtnText, { color: theme.textMain }]}>Download Full Resume</Text>
                </TouchableOpacity>
              )}
           </View>
         </View>
+
+       
         <View style={[
             styles.card, 
-            styles.purpleCard,
+            { backgroundColor: theme.cardBg, borderColor: theme.border }, 
             isDesktop ? { flex: 0.45 } : { marginBottom: 20 }
         ]}>
            <View style={{flexDirection:'row', justifyContent:'space-between', marginBottom: 20}}>
-              <Text style={[styles.cardTitle, {color:'#FFF'}]}>Interview Performance</Text>
-              <Text style={{color:'#C7D2FE'}}>Last 5 Avg</Text>
+              <Text style={[styles.cardTitle, {color: theme.textMain }]}>Interview Performance</Text>
+              <Text style={{color: theme.textSub }}>Last Interview score</Text>
            </View>
            <View style={styles.performanceContent}>
-              <View style={styles.radialWrapper}>
-                <View style={styles.radialOuter}>
+              <View style={[styles.radialWrapper, { borderColor: TUF_Green }]}>
+                <View style={[styles.radialOuter, { backgroundColor: theme.activeItemBg }]}>
                    <View style={styles.radialInner}>
-                      <Text style={styles.radialNumber}>{userData?.avgScore || "0.0"}</Text>
-                      <Text style={styles.radialLabel}>/ 10</Text>
+                      <Text style={[styles.radialNumber, { color: theme.textMain }]}>{userData?.avgScore || "0.0"}</Text>
+                      <Text style={[styles.radialLabel, { color: theme.textSub }]}>/ 10</Text>
                    </View>
                 </View>
               </View>
               <View style={styles.statsColumn}>
-                 <Text style={{color:'#E0E7FF', marginBottom:10}}>Universal Scores</Text>
+                 <Text style={{color: theme.textSub, marginBottom:10}}>Universal Scores</Text>
                  <View style={styles.statsGrid}>
                     {UNIVERSAL_PARAMS.map((param, idx) => {
-                       const score = getScore(userData?.universalScores, param);
+                       const score = getScore(userData?.universalscore, param);
                        return (
-                         <View key={idx} style={styles.statBox}>
-                            <Text style={styles.statScore}>{score}</Text>
-                            <Text style={styles.statLabel} numberOfLines={1}>{param}</Text>
+                         <View key={idx} style={[styles.statBox, { backgroundColor: theme.activeItemBg }]}>
+                            <Text style={[styles.statScore, { color: TUF_Green }]}>{score}</Text>
+                            <Text style={[styles.statLabel, { color: theme.textSub }]} numberOfLines={1}>{param}</Text>
                          </View>
                        );
                     })}
@@ -340,13 +344,14 @@ export default function Dashboard({ theme }) {
            </View>
         </View>
       </View>
+
       <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
         <Text style={[styles.cardTitle, { color: theme.textMain }]}>Career & Academic Profile</Text>
         <View style={[styles.divider, { backgroundColor: theme.border }]} />
         
         <View style={isDesktop ? styles.row : styles.column}>
           <View style={[isDesktop ? { flex: 0.4, borderRightWidth:1, borderColor: theme.border, paddingRight:20 } : { marginBottom:20 }]}>
-            <Text style={styles.sectionHeader}>Education</Text>
+            <Text style={[styles.sectionHeader, { color: TUF_Green }]}>Education</Text>
             
             {renderField("Institute", userData?.institution)}
             {renderField("Degree", userData?.degree)}
@@ -354,14 +359,14 @@ export default function Dashboard({ theme }) {
             {renderField("Graduation Year", userData?.graduationYear)}
             <View style={[styles.cgpaContainer, { backgroundColor: theme.bg }]}>
               <Text style={[styles.label, { color: theme.textSub }]}>CGPA / 10</Text>
-              <View style={[styles.cgpaCircle, { borderColor: '#22C55E', backgroundColor: theme.cardBg }]}>
-                <Text style={styles.cgpaText}>{userData?.cgpa || "N/A"}</Text>
+              <View style={[styles.cgpaCircle, { borderColor: '#15803D', backgroundColor: theme.cardBg }]}>
+                <Text style={[styles.cgpaText, { color: '#22C55E' }]}>{userData?.cgpa || "N/A"}</Text>
               </View>
               <Text style={{fontSize:10, color: theme.textSub, marginTop:5}}>Cumulative Grade Point</Text>
             </View>
           </View>
           <View style={[isDesktop ? { flex: 0.6, paddingLeft:20 } : {}]}>
-            <Text style={styles.sectionHeader}>Professional Details</Text>
+            <Text style={[styles.sectionHeader, { color: TUF_Green }]}>Professional Details</Text>
             
             <View style={styles.detailGrid}>
               <View style={[styles.detailBox, { backgroundColor: theme.bg }]}>
@@ -410,11 +415,11 @@ export default function Dashboard({ theme }) {
 
         <View style={isDesktop ? styles.grid2Col : styles.column}>
            {DOMAIN_CONFIG[selectedDomain]?.map((skill) => {
-              const domainData = userData?.domainScores ? userData.domainScores[selectedDomain] : {};
+              const domainData = userData?.Domainspecificscore ? userData.Domainspecificscore[selectedDomain] : {};
               const score = getScore(domainData, skill);
               return (
                 <View key={skill} style={isDesktop ? {width: '48%'} : {width: '100%'}}>
-                  {renderProgressBar(skill, score, "#F59E0B")}
+                  {renderProgressBar(skill, score, TUF_Green)}
                 </View>
               );
            })}
@@ -427,7 +432,7 @@ export default function Dashboard({ theme }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <View style={[styles.header, { backgroundColor: theme.cardBg }]}>
+      <View style={[styles.header, { backgroundColor: theme.bg }]}>
         <View style={{flex: 1}}>
           <Text style={[styles.headerTitle, { color: theme.textMain }]}>Dashboard</Text>
           {isProfileIncomplete() && (
@@ -462,7 +467,7 @@ export default function Dashboard({ theme }) {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.modalOverlay}
         >
-            <View style={[styles.modalContent, { backgroundColor: theme.cardBg, height: '85%', width: isDesktop ? 500 : '90%' }]}>
+            <View style={[styles.modalContent, { backgroundColor: theme.cardBg, height: '85%', width: isDesktop ? 500 : '90%', borderColor: theme.border, borderWidth: 1 }]}>
                 <View style={styles.modalHeader}>
                     <Text style={[styles.modalTitle, { color: theme.textMain }]}>Edit Profile</Text>
                     <TouchableOpacity onPress={() => setShowEditProfileModal(false)}>
@@ -475,19 +480,19 @@ export default function Dashboard({ theme }) {
                     showsVerticalScrollIndicator={false} 
                     contentContainerStyle={{ paddingBottom: 30 }}
                 >
-                    <Text style={[styles.sectionHeader, { marginTop: 10 }]}>Basic Info</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: 10, color: TUF_Green }]}>Basic Info</Text>
                     {renderEditInput("Full Name", "fullName", "Your Name")}
                     {renderEditInput("Current Role", "currentRole", "e.g. Software Engineer")}
                     {renderEditInput("Location", "location", "City, Country")}
                     {renderEditInput("Phone", "phone", "+1 234...")}
 
-                    <Text style={[styles.sectionHeader, { marginTop: 20 }]}>Academic</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: 20, color: TUF_Green }]}>Academic</Text>
                     {renderEditInput("Institute", "institution", "University Name")}
                     {renderEditInput("Degree", "degree", "e.g. B.Tech CS")}
                     {renderEditInput("Graduation Year", "graduationYear", "2024")}
                     {renderEditInput("CGPA", "cgpa", "e.g. 9.5")}
 
-                    <Text style={[styles.sectionHeader, { marginTop: 20 }]}>Professional</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: 20, color: TUF_Green }]}>Professional</Text>
                     {renderEditInput("Years Experience", "yearsOfExperience", "0")}
                     {renderEditInput("Skills (comma separated)", "skills", "React, Node...", true)}
                     {renderEditInput("Work Experience", "workExperience", "Describe your experience...", true)}
@@ -508,14 +513,14 @@ export default function Dashboard({ theme }) {
       </Modal>
       <Modal visible={showDomainPicker} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.cardBg, maxHeight: '60%', width: 320 }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBg, maxHeight: '60%', width: 320, borderColor: theme.border, borderWidth: 1 }]}>
             <Text style={[styles.modalTitle, { color: theme.textMain }]}>Select Domain</Text>
             <FlatList
               data={Object.keys(DOMAIN_CONFIG)}
               keyExtractor={item => item}
               renderItem={({ item }) => (
                 <TouchableOpacity style={[styles.modalItem, { borderColor: theme.border }]} onPress={() => { setSelectedDomain(item); setShowDomainPicker(false); }}>
-                  <Text style={[styles.modalText, { color: theme.textMain }, item === selectedDomain && {color: '#4F46E5', fontWeight:'bold'}]}>{item}</Text>
+                  <Text style={[styles.modalText, { color: theme.textMain }, item === selectedDomain && {color: TUF_Green, fontWeight:'bold'}]}>{item}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -549,11 +554,11 @@ const styles = StyleSheet.create({
   grid2Col: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
   headerTitle: { fontSize: 24, fontWeight: 'bold' },
-  incompleteLabel: { fontSize: 11, color: '#F59E0B', marginTop: 4, fontWeight: '600' },
-  card: { borderRadius: 12, padding: 24, marginBottom: 20, shadowColor: '#64748B', shadowOpacity: 0.08, shadowRadius: 10, elevation: 2, borderWidth: 1 },
+  incompleteLabel: { fontSize: 11, color: '#22c55e', marginTop: 4, fontWeight: '600' },
+  card: { borderRadius: 12, padding: 24, marginBottom: 20, borderWidth: 1 },
   cardTitle: { fontSize: 18, fontWeight: '700' },
   divider: { height: 1, marginVertical: 16 },
-  sectionHeader: { fontSize:16, fontWeight:'700', color:'#4F46E5', marginBottom:15, textTransform:'uppercase', letterSpacing:0.5 },
+  sectionHeader: { fontSize:16, fontWeight:'700', marginBottom:15, textTransform:'uppercase', letterSpacing:0.5 },
   infoItem: { marginBottom: 12 },
   label: { fontSize: 12, fontWeight:'600', marginBottom: 2 },
   value: { fontSize: 14, lineHeight:20 },
@@ -562,20 +567,20 @@ const styles = StyleSheet.create({
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop:4 },
   chip: { fontSize: 11, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12, fontWeight:'600' },
   cgpaContainer: { alignItems:'center', marginTop:20, padding:15, borderRadius:12 },
-  cgpaCircle: { width: 80, height: 80, borderRadius: 40, borderWidth: 8, justifyContent: 'center', alignItems: 'center', marginTop: 8 },
-  cgpaText: { fontSize: 24, fontWeight: 'bold', color: '#15803D' },
+  cgpaCircle: { width: 80, height: 80, borderRadius: 40, borderWidth: 6, justifyContent: 'center', alignItems: 'center', marginTop: 8 },
+  cgpaText: { fontSize: 24, fontWeight: 'bold' },
   cvHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
   cvTitle: { fontSize: 20, fontWeight: '800' },
   cvSubtitle: { fontSize: 12 },
-  verifiedBadge: { backgroundColor: '#DCFCE7', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 20 },
-  verifiedText: { color: '#166534', fontSize: 12, fontWeight: '700' },
+  verifiedBadge: { backgroundColor: '#052e16', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 20, borderWidth: 1, borderColor: '#166534' },
+  verifiedText: { color: '#22c55e', fontSize: 12, fontWeight: '700' },
   cvBody: {},
   cvProfileRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   cvBigAvatar: { width: 80, height: 80, borderRadius: 12 },
   emptyAvatar: { justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderStyle: 'dashed' },
   addPhotoText: { fontSize: 10, marginTop: 4, fontWeight: '600' },
   avatarWrapper: { position: 'relative' },
-  avatarEditBadge: { position: 'absolute', bottom: -5, right: -5, width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#FFF' },
+  avatarEditBadge: { position: 'absolute', bottom: -5, right: -5, width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 2 },
   cvInfo: { marginLeft: 16, flex: 1 },
   cvName: { fontSize: 20, fontWeight: 'bold' },
   cvRole: { fontSize: 14, marginBottom: 4 },
@@ -586,18 +591,17 @@ const styles = StyleSheet.create({
   editProfileBtnText: { color: '#FFF', fontWeight: '600', fontSize: 14 },
   downloadBtn: { paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
   downloadBtnText: { fontWeight: '600', fontSize: 14 },
-  purpleCard: { backgroundColor: '#4F46E5', borderColor: '#4338CA' },
   performanceContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
-  radialWrapper: { width: 100, height: 100, borderRadius: 50, borderWidth: 8, borderColor: '#818CF8', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)' },
-  radialOuter: { width: 84, height: 84, borderRadius: 42, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+  radialWrapper: { width: 100, height: 100, borderRadius: 50, borderWidth: 6, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
+  radialOuter: { width: 86, height: 86, borderRadius: 43, justifyContent: 'center', alignItems: 'center' },
   radialInner: { alignItems: 'center' },
-  radialNumber: { fontSize: 28, fontWeight: 'bold', color: '#FFF' },
-  radialLabel: { fontSize: 12, color: '#C7D2FE' },
+  radialNumber: { fontSize: 28, fontWeight: 'bold' },
+  radialLabel: { fontSize: 12 },
   statsColumn: { flex: 1, paddingLeft: 20 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  statBox: { backgroundColor: 'rgba(255,255,255,0.15)', padding: 8, borderRadius: 8, alignItems: 'center', width: '30%', marginBottom: 5 },
-  statScore: { color: '#4ADE80', fontWeight: 'bold', fontSize: 16 },
-  statLabel: { color: '#E0E7FF', fontSize: 9, marginTop: 2, textAlign: 'center' },
+  statBox: { padding: 8, borderRadius: 8, alignItems: 'center', width: '30%', marginBottom: 5 },
+  statScore: { fontWeight: 'bold', fontSize: 16 },
+  statLabel: { fontSize: 9, marginTop: 2, textAlign: 'center' },
   skillRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   skillLabel: { width: 140, fontSize: 13, fontWeight: '500' },
   skillBarContainer: { flex: 1, marginHorizontal: 10 },
@@ -607,8 +611,8 @@ const styles = StyleSheet.create({
   domainHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dropdownBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6 },
   dropdownText: { fontWeight: '600', fontSize: 13 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { borderRadius: 12, padding: 20, shadowColor:'#000', shadowOpacity:0.25, shadowRadius:20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { borderRadius: 12, padding: 20, shadowColor:'#000', shadowOpacity:0.5, shadowRadius:30 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   modalTitle: { fontSize: 20, fontWeight: 'bold' },
   modalItem: { paddingVertical: 12, borderBottomWidth: 1 },
