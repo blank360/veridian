@@ -11,14 +11,15 @@ import Dashboard from './Dashboard';
 import Plans from './Plans'; 
 import CVMaker from './CVMaker'; 
 import AptitudeDSA from './AptitudeDSA';
+
 const TermsPanel = ({ theme }) => (
   <ScrollView contentContainerStyle={{ padding: 24, flex:1, backgroundColor: theme.bg }}>
     <Text style={[styles.panelTitle, { color: theme.textMain }]}>Terms & Conditions</Text>
     <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
       <Text style={{ color: theme.textSub, lineHeight: 24 }}>
-        <Text style={{fontWeight: 'bold'}}>1. Acceptance: </Text>By using Veridian, you agree to our terms.{'\n\n'}
-        <Text style={{fontWeight: 'bold'}}>2. Privacy: </Text>Your data is stored securely via Firebase.{'\n\n'}
-        <Text style={{fontWeight: 'bold'}}>3. Usage: </Text>Veridian is for interview preparation purposes only.
+        <Text style={{fontWeight: 'bold', color: theme.textMain}}>1. Acceptance: </Text>By using Veridian, you agree to our terms.{'\n\n'}
+        <Text style={{fontWeight: 'bold', color: theme.textMain}}>2. Privacy: </Text>Your data is stored securely via Firebase.{'\n\n'}
+        <Text style={{fontWeight: 'bold', color: theme.textMain}}>3. Usage: </Text>Veridian is for interview preparation purposes only.
       </Text>
     </View>
   </ScrollView>
@@ -38,7 +39,7 @@ const FeedbackPanel = ({ theme }) => (
         style={[styles.input, { color: theme.textMain, borderColor: theme.border, backgroundColor: theme.bg }]} 
       />
       <TouchableOpacity style={[styles.button, { backgroundColor: theme.primary }]}>
-        <Text style={{ color: '#FFF', fontWeight: '600' }}>Submit Feedback</Text>
+        <Text style={{ color: '#000', fontWeight: 'bold' }}>Submit Feedback</Text>
       </TouchableOpacity>
     </View>
   </ScrollView>
@@ -51,18 +52,19 @@ export default function Home({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({}); 
   const [activeTab, setActiveTab] = useState('Dashboard');
-  const [darkMode, setDarkMode] = useState(false); 
+  const [darkMode, setDarkMode] = useState(true); 
+
   const theme = {
-    bg: darkMode ? '#0F172A' : '#F8FAFC',
-    sidebarBg: darkMode ? '#1E293B' : '#FFFFFF',
-    cardBg: darkMode ? '#1E293B' : '#FFFFFF',
-    textMain: darkMode ? '#F1F5F9' : '#0F172A',
-    textSub: darkMode ? '#94A3B8' : '#64748B',
-    border: darkMode ? '#334155' : '#E2E8F0',
-    activeItemBg: darkMode ? '#312E81' : '#EEF2FF',
-    primary: '#4F46E5',
-    iconActive: '#4F46E5',
-    iconInactive: darkMode ? '#94A3B8' : '#64748B'
+    bg: darkMode ? '#000000' : '#F8FAFC',           
+    sidebarBg: darkMode ? '#000000' : '#FFFFFF',    
+    cardBg: darkMode ? '#09090b' : '#FFFFFF',      
+    textMain: darkMode ? '#FAFAFA' : '#0F172A',     
+    textSub: darkMode ? '#A1A1AA' : '#64748B',      
+    border: darkMode ? '#27272a' : '#E2E8F0',       
+    activeItemBg: darkMode ? '#18181b' : '#EEF2FF', 
+    primary: '#22c55e',                             
+    iconActive: '#22c55e',                          
+    iconInactive: darkMode ? '#525252' : '#64748B'  
   };
 
   useEffect(() => {
@@ -188,7 +190,7 @@ export default function Home({ navigation }) {
                     <Switch 
                         value={darkMode} 
                         onValueChange={setDarkMode}
-                        trackColor={{ false: '#CBD5E1', true: '#4F46E5' }}
+                        trackColor={{ false: '#CBD5E1', true: theme.primary }}
                         thumbColor={'#FFF'}
                     />
                 </View>
@@ -196,7 +198,7 @@ export default function Home({ navigation }) {
                 <Switch 
                     value={darkMode} 
                     onValueChange={setDarkMode}
-                    trackColor={{ false: '#CBD5E1', true: '#4F46E5' }}
+                    trackColor={{ false: '#CBD5E1', true: theme.primary }}
                     thumbColor={'#FFF'}
                 />
             )}
@@ -311,7 +313,7 @@ const styles = StyleSheet.create({
     width: 40, 
     height: 40, 
     borderRadius: 20, 
-    backgroundColor: '#E2E8F0' 
+    backgroundColor: '#3F3F46' 
   },
   userName: { 
     fontSize: 14, 
